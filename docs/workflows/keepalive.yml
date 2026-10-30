@@ -17,6 +17,7 @@ jobs:
           KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         run: |
           if [ -z "$URL" ] || [ -z "$KEY" ]; then echo "No Supabase secrets set, skipping."; exit 0; fi
+          AUTH=""; case "$KEY" in sb_*) ;; *) AUTH="Authorization: Bearer $KEY";; esac
           curl -fsS -X POST "$URL/rest/v1/rpc/ping" \
-            -H "apikey: $KEY" -H "Authorization: Bearer $KEY" \
+            -H "apikey: $KEY" ${AUTH:+-H "$AUTH"} \
             -H "Content-Type: application/json" -d '{}'

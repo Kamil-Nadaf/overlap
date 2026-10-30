@@ -28,7 +28,8 @@ async function rpc<T>(fn: string, args: Record<string, unknown>): Promise<T> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (apiKey) {
     headers.apikey = apiKey;
-    headers.Authorization = `Bearer ${apiKey}`;
+    // New Supabase publishable keys (sb_publishable_…) are not JWTs: send them as apikey only.
+    if (!apiKey.startsWith('sb_')) headers.Authorization = `Bearer ${apiKey}`;
   }
   let res: Response;
   try {

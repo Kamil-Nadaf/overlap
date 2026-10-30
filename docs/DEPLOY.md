@@ -34,19 +34,25 @@ create an App Password (Google Account, Security, 2-Step Verification, App passw
 `SMTP_HOST=smtp.gmail.com SMTP_PORT=587 SMTP_SECURE=false SMTP_USER=you@gmail.com SMTP_PASS=<app password>`
 and `MAIL_FROM=Overlap <you@gmail.com>`. Gmail limits sending volume; fine for a research group.
 
-## Option 2: GitHub Pages + Supabase
-1. Supabase: new project, SQL editor, run `0001_init.sql` then `0002_cleanup_cron.sql`.
-2. Repo, Settings, Pages, Source: **GitHub Actions**.
-3. Repo, Settings, Secrets and variables, Actions: add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
-   (Docker backend instead? add `VITE_API_URL=https://your-host/api`.)
-4. Push to `main`. Site: https://kamil-nadaf.github.io/overlap/
-5. `keepalive.yml` pings Supabase every 3 days so the free project does not pause.
-6. Reminders: run the `worker` container somewhere always-on with
-   `DATABASE_URL` set to the Supabase connection string (Project Settings, Database, use the pooler URI) plus the SMTP vars.
+## Option 2: GitHub Pages + Supabase (free, shareable)
+1. **Project.** supabase.com, New project (free plan). Pick a region near your group and save the database password.
+2. **Database.** Dashboard, SQL Editor, New query: paste all of `supabase/setup.sql`, Run. It should say "Success". (The cleanup part is optional and skips itself if pg_cron is off.)
+3. **Keys.** Project Settings, API: copy the **Project URL** and the **anon public** key. The anon key is meant to be public; it cannot read tables, only call the functions in the SQL above.
+4. **GitHub secrets.** Repo, Settings, Secrets and variables, Actions, New repository secret:
+   - `VITE_SUPABASE_URL` = the Project URL
+   - `VITE_SUPABASE_ANON_KEY` = the anon key
+5. **Deploy.** Repo, Actions, "Deploy to GitHub Pages", Run workflow (or push to `main`). Site: https://kamil-nadaf.github.io/overlap/ . The "Demo mode" banner disappears when it is connected.
+6. **Keepalive.** `keepalive.yml` pings Supabase every 3 days so the free project does not pause.
+7. **Emails.** Supabase only stores data; the worker sends the emails, so run it somewhere always on (your Mac mini):
    ```bash
+   cp worker.env.example worker.env     # fill in DATABASE_URL (Session pooler URI), APP_URL, Gmail app password
    docker build -t overlap-worker ./worker
-   docker run -d --restart unless-stopped --env-file worker.env overlap-worker
+   docker run -d --restart unless-stopped --env-file worker.env --name overlap-worker overlap-worker
+   docker logs -f overlap-worker        # "worker started" means it is polling
    ```
+   Without the worker everything works except email.
+
+Docker backend instead of Supabase? Add the secret `VITE_API_URL=https://your-public-host/api` and skip steps 1 to 4.
 
 ## Local development (no Docker)
 ```bash
