@@ -19,6 +19,7 @@ export interface Api {
   organizerRecipients(id: string, token: string): Promise<string[]>;
   claimConfirmation(id: string, token: string, emails: string[]): Promise<void>;
   releaseConfirmation(id: string, token: string, emails: string[]): Promise<void>;
+  getStats(): Promise<{ events_created: number; meetings_scheduled: number } | null>;
   sendFeedback(message: string, contact: string, page: string): Promise<void>;
   /** demo mode only */
   seedSample?(eventId: string): Promise<void>;
@@ -89,6 +90,10 @@ const remoteApi: Api = {
   },
   deleteEvent: async (id, token) => {
     await rpc('delete_event', { p_id: id, p_admin_token: token });
+  },
+  getStats: async () => {
+    const r = await rpc<{ events_created?: number; meetings_scheduled?: number } | null>('get_stats', {});
+    return r && typeof r.events_created === 'number' ? { events_created: r.events_created, meetings_scheduled: r.meetings_scheduled ?? 0 } : null;
   },
   sendFeedback: async (message, contact, page) => {
     await rpc('send_feedback', { p_message: message, p_contact: contact || null, p_page: page });

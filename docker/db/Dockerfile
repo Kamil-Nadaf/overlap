@@ -6,3 +6,4 @@ COPY --chmod=0644 supabase/migrations/0001_init.sql /docker-entrypoint-initdb.d/
 COPY --chmod=0644 supabase/migrations/0003_organizer_gmail.sql /docker-entrypoint-initdb.d/11_organizer_gmail.sql
 COPY --chmod=0644 supabase/migrations/0004_cleanup_after_meeting.sql /docker-entrypoint-initdb.d/12_cleanup.sql
 COPY --chmod=0644 supabase/migrations/0005_feedback.sql /docker-entrypoint-initdb.d/13_feedback.sql
+COPY --chmod=0644 supabase/migrations/0006_stats.sql /docker-entrypoint-initdb.d/14_stats.sql

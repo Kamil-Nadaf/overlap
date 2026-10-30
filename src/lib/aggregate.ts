@@ -27,6 +27,8 @@ export interface Block {
   yes: number;
   maybe: number;
   count: number;
+  yesIds: string[]; // who is free for the whole block
+  maybeIds: string[]; // who is "if need be"
 }
 
 /**
@@ -58,6 +60,8 @@ export function bestBlocks(slots: string[], tallies: Map<string, SlotTally>, slo
         yes: t.yes.length,
         maybe: t.maybe.length,
         count: t.count,
+        yesIds: t.yes,
+        maybeIds: t.maybe,
         sig: sg,
         last: ms,
       };
@@ -67,7 +71,7 @@ export function bestBlocks(slots: string[], tallies: Map<string, SlotTally>, slo
   return blocks
     .sort((a, b) => b.yes - a.yes || b.maybe - a.maybe || b.slots - a.slots || a.start.localeCompare(b.start))
     .slice(0, limit)
-    .map(({ start, end, slots: n, yes, maybe, count }) => ({ start, end, slots: n, yes, maybe, count }));
+    .map(({ start, end, slots: n, yes, maybe, count, yesIds, maybeIds }) => ({ start, end, slots: n, yes, maybe, count, yesIds, maybeIds }));
 }
 
 export function namesFor(ids: string[], people: Participant[]): string[] {

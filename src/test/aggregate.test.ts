@@ -22,6 +22,8 @@ describe('aggregate', () => {
   it('merges identical neighbours and ranks by availability', () => {
     const b = bestBlocks(slots, tally(slots, rows), 30);
     expect(b[0]).toMatchObject({ start: slots[0], end: '2026-11-10T02:00:00Z', slots: 2, yes: 2 });
+    expect(b[0].yesIds).toEqual(['a', 'b']);
+    expect(b[1]).toMatchObject({ yesIds: ['a'], maybeIds: ['b'] });
     expect(b).toHaveLength(2);
   });
 });

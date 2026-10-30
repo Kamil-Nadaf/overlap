@@ -12,7 +12,7 @@ import { allZones, browserZone, buildGrid, describeSlot, generateSlots, sliceGri
 import { adminKey, identityKey, load, RECENT_KEY, save, type Identity } from '../lib/storage';
 import { deleteMyEvent } from '../lib/deleteEvent';
 import { useEvent } from '../lib/useEvent';
-import type { Level } from '../types';
+import type { Level, Participant } from '../types';
 import { eventUrl } from './Created';
 
 const ZONE_KEY = 'overlap:zone';
@@ -525,6 +525,7 @@ export function EventPage() {
                           <div className="text-sm text-muted">
                             {b.yes} free{b.maybe ? ` + ${b.maybe} if need be` : ''} of {people.length}
                           </div>
+                          <Who block={b} people={people} />
                         </button>
                       </li>
                     );
@@ -583,6 +584,32 @@ export function EventPage() {
         )}
       </div>
     </div>
+  );
+}
+
+/** Names behind the counts: who is free, who is "if need be", and who can't. */
+function Who({ block, people }: { block: Block; people: Participant[] }) {
+  const free = namesFor(block.yesIds, people);
+  const maybe = namesFor(block.maybeIds, people);
+  const ids = new Set([...block.yesIds, ...block.maybeIds]);
+  const no = people.filter((p) => !ids.has(p.id)).map((p) => p.name);
+  const chip = (names: string[], label: string, cls: string) =>
+    names.length > 0 && (
+      <div className="mt-1 flex flex-wrap items-center gap-1 text-sm">
+        <span className="font-bold text-ink-soft">{label}</span>
+        {names.map((n, i) => (
+          <span key={`${n}-${i}`} className={`rounded-full px-2 py-0.5 ${cls}`}>
+            {n}
+          </span>
+        ))}
+      </div>
+    );
+  return (
+    <>
+      {chip(free, 'Free:', 'bg-[#e3ecc2] text-[#2f4a1c]')}
+      {chip(maybe, 'If need be:', 'bg-[#f0dfb8] text-[#5a4210]')}
+      {chip(no, 'Not free:', 'bg-ink/5 text-muted')}
+    </>
   );
 }
 

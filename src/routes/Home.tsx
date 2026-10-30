@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { DateTime } from 'luxon';
 import { Link, useNavigate } from 'react-router-dom';
 import { Bell, Globe, Github } from '../components/icons';
@@ -17,12 +17,20 @@ export function Home() {
   const [from, setFrom] = useState(today);
   const [to, setTo] = useState(DateTime.now().plus({ days: 7 }).toISODate()!);
   const recent = load<Recent[]>(RECENT_KEY, []).slice(0, 4);
+  const [used, setUsed] = useState<number | null>(null);
+  useEffect(() => {
+    let alive = true;
+    api.getStats().then((s) => alive && s && setUsed(s.events_created), () => undefined);
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   return (
     <div className="flex w-full max-w-xl lg:ml-auto flex-1 flex-col items-center justify-center gap-5 px-4 py-4">
-      <div className="card w-full px-6 py-8 sm:px-10">
-        <h1 className="h-display text-center text-7xl sm:text-8xl">Overlap</h1>
-        <p className="mb-6 mt-2 text-center font-display text-2xl font-medium italic text-ink-soft sm:text-3xl">Find the hour where everyone is free.</p>
+      <div className="card w-full px-5 py-6 sm:px-8">
+        <h1 className="h-display text-center text-5xl sm:text-6xl">Overlap</h1>
+        <p className="mb-6 mt-2 text-center font-display text-xl font-medium italic text-ink-soft sm:text-2xl">Find the hour where everyone is free.</p>
         <form
           className="flex flex-col gap-3"
           onSubmit={(e) => {
@@ -67,6 +75,12 @@ export function Home() {
             </Link>
           ))}
         </div>
+      )}
+
+      {used !== null && used > 0 && (
+        <p className="pill m-0 px-4 py-1.5 text-center text-base font-medium text-ink-soft">
+          <b className="text-ink">{used.toLocaleString()}</b> {used === 1 ? 'meeting' : 'meetings'} organized with Overlap so far
+        </p>
       )}
 
       <ul className="m-0 flex list-none flex-wrap justify-center gap-3 p-0 text-lg font-medium">
