@@ -3,7 +3,7 @@
  * Uses Google Identity Services (token model): no server, no client secret, nothing stored.
  * Scope is gmail.send only: Overlap can send mail but cannot read the mailbox.
  */
-import { buildIcs, type CalEvent } from './ics';
+import { buildIcs, googleCalendarUrl, outlookUrl, type CalEvent } from './ics';
 
 const CLIENT_ID = ((import.meta.env as Record<string, string | undefined>).VITE_GOOGLE_CLIENT_ID ?? '').trim();
 const SCOPE = 'https://www.googleapis.com/auth/gmail.send';
@@ -104,17 +104,27 @@ function buildMime(to: string, c: Confirmation): string {
     c.meetingUrl ? `Join: ${c.meetingUrl}` : '',
     `Event page (shows the time in your own zone): ${c.eventLink}`,
     '',
-    'A calendar file is attached. You will get a reminder before it starts.',
+    '',
+    'Add to your calendar:',
+    `  Google Calendar: ${googleCalendarUrl(c.cal)}`,
+    `  Outlook: ${outlookUrl(c.cal)}`,
+    '  Apple, QQ/163 mail or any other calendar: open the attached meeting.ics',
+    '',
+    'You will get a reminder before it starts.',
   ]
     .filter((l, i, a) => l !== '' || a[i - 1] !== '')
     .join('\r\n');
+  const btn = (href: string, label: string) =>
+    `<a href="${esc(href)}" style="display:inline-block;margin:0 6px 6px 0;padding:7px 12px;border:1px solid #35617a;color:#35617a;text-decoration:none;border-radius:8px;font-size:13px">${label}</a>`;
   const html = `<div style="font-family:Georgia,serif;max-width:520px;color:#2b2118">
 <h2 style="margin:0 0 8px">${esc(c.title)}</h2>
 <p style="margin:0 0 12px">The meeting is scheduled${esc(by)}.</p>
 <p style="margin:0 0 12px"><b>${esc(c.whenText)}</b><br><small>${esc(c.utcText)} UTC</small></p>
 ${c.meetingUrl ? `<p><a href="${esc(c.meetingUrl)}" style="display:inline-block;padding:10px 18px;background:#35617a;color:#fbf3df;text-decoration:none;border-radius:8px">Join the meeting</a></p>` : ''}
+<p style="margin:12px 0 4px"><small>Add to your calendar</small><br>${btn(googleCalendarUrl(c.cal), 'Google Calendar')}${btn(outlookUrl(c.cal), 'Outlook')}</p>
+<p style="margin:0 0 12px;color:#6b5a44;font-size:12px">Apple, QQ/163 mail or any other calendar: open the attached meeting.ics</p>
 <p><a href="${esc(c.eventLink)}">Open the event</a> to see the time in your own zone.</p>
-<p style="color:#6b5a44;font-size:12px">Calendar file attached. A reminder follows before it starts.</p></div>`;
+<p style="color:#6b5a44;font-size:12px">A reminder follows before it starts.</p></div>`;
   const mixed = `ovm${rand()}`;
   const alt = `ova${rand()}`;
   const part = (type: string, body: string, extra = '') =>

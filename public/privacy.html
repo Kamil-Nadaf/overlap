@@ -18,7 +18,7 @@
   <li>Event details: title, optional description, dates, time window, chosen meeting time and meeting link.</li>
   <li>Participant details: the name a person types, the time slots they mark, an optional PIN (stored only as a salted hash), and an optional email address used for the meeting confirmation and reminders.</li>
   <li>Email addresses are never shown to other participants and are only readable by the event's organizer and the reminder service.</li>
-  <li>Events and everything attached to them are deleted automatically 180 days after creation, or sooner when the organizer deletes the event.</li>
+  <li>Events and everything attached to them (names, availability, email addresses) are deleted automatically one day after the meeting ends, or 60 days after the last activity if no meeting was ever scheduled. The organizer can also delete an event at any time.</li>
 </ul>
 
 <h2>Google sign-in (optional, organizers only)</h2>

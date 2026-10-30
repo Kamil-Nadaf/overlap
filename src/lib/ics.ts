@@ -1,4 +1,4 @@
-const esc = (s: string) => s.replace(/\\/g, '\\\\').replace(/;/g, '\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
+const esc = (s: string) => s.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
 const stamp = (iso: string) => new Date(iso).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
 
 function fold(line: string): string {
@@ -57,6 +57,20 @@ export function googleCalendarUrl(e: CalEvent): string {
   });
   if (e.url) p.set('location', e.url);
   return `https://calendar.google.com/calendar/render?${p.toString()}`;
+}
+
+export function outlookUrl(e: CalEvent): string {
+  const iso = (d: string) => new Date(d).toISOString().replace(/\.\d{3}Z$/, 'Z');
+  const p = new URLSearchParams({
+    path: '/calendar/action/compose',
+    rru: 'addevent',
+    subject: e.title,
+    startdt: iso(e.startIso),
+    enddt: iso(e.endIso),
+    body: [e.description ?? '', e.url ? `Join: ${e.url}` : ''].filter(Boolean).join('\n'),
+  });
+  if (e.url) p.set('location', e.url);
+  return `https://outlook.live.com/calendar/0/deeplink/compose?${p.toString()}`;
 }
 
 export function downloadIcs(e: CalEvent, filename = 'overlap-meeting.ics'): void {

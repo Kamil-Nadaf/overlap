@@ -7,7 +7,7 @@ import { Check, Globe, Video } from '../components/icons';
 import { api, friendlyError } from '../lib/api';
 import { getGmailToken, gmailEnabled, preloadGoogle, sendConfirmations } from '../lib/gmail';
 import { bestBlocks, levelsFor, namesFor, tally, type Block } from '../lib/aggregate';
-import { downloadIcs, googleCalendarUrl, type CalEvent } from '../lib/ics';
+import { downloadIcs, googleCalendarUrl, outlookUrl, type CalEvent } from '../lib/ics';
 import { allZones, browserZone, buildGrid, describeSlot, generateSlots, sliceGrid, weeksOf } from '../lib/slots';
 import { adminKey, identityKey, load, RECENT_KEY, remove, save, type Identity } from '../lib/storage';
 import { useEvent } from '../lib/useEvent';
@@ -299,6 +299,9 @@ export function EventPage() {
               <a className="btn btn-ghost !py-2 !text-base" href={googleCalendarUrl(cal)} target="_blank" rel="noreferrer">
                 Google Calendar
               </a>
+              <a className="btn btn-ghost !py-2 !text-base" href={outlookUrl(cal)} target="_blank" rel="noreferrer">
+                Outlook
+              </a>
               {isAdmin && (
                 <button type="button" className="cursor-pointer border-0 bg-transparent px-2 text-base font-bold text-ink-soft underline" onClick={() => void setFinal(null, null)}>
                   Change
@@ -499,7 +502,7 @@ export function EventPage() {
         {step === 'decide' && isAdmin && (
           <div className="mx-auto flex w-full max-w-xl flex-col gap-4 py-2">
             <p className="m-0 text-base text-ink-soft">
-              {people.length} {people.length === 1 ? 'person has' : 'people have'} replied. Pick the time, add the meeting link, and Overlap emails everyone who left an address (with a calendar file), then reminds them before it starts.
+              {people.length} {people.length === 1 ? 'person has' : 'people have'} replied. Pick the time, add the meeting link, and Overlap emails everyone who left an address (with add-to-calendar buttons), then reminds them before it starts. The event is deleted a day after the meeting ends.
             </p>
             <div>
               <span className="label">Best times</span>

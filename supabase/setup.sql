@@ -42,7 +42,7 @@ create table public.events (
   final_end        timestamptz,
   reminder_offsets_min int[] not null default '{1440,60}',
   created_at       timestamptz not null default now(),
-  expires_at       timestamptz not null default now() + interval '180 days',
+  expires_at       timestamptz not null default now() + interval '60 days',
   check (day_end_min > day_start_min),
   check ((final_start is null) = (final_end is null)),
   check (final_end is null or final_end > final_start)
@@ -234,7 +234,7 @@ begin
     from jsonb_array_elements(p_slots) x
   on conflict do nothing;
 
-  update public.events set expires_at = now() + interval '180 days'
+  update public.events set expires_at = now() + interval '60 days'
    where id = p_event_id;
 
   return jsonb_build_object('participant_id', v_p.id);
@@ -371,3 +371,33 @@ grant execute on function
   public.claim_confirmation(text, text, text[]),
   public.release_confirmation(text, text, text[])
 to anon, authenticated;
+
+
+-- ------------------------------------------------- 0004: cleanup after the meeting
+
+create or replace function public.cleanup_events()
+returns int
+language plpgsql security definer set search_path = public
+as $$
+declare n int;
+begin
+  with d as (
+    delete from public.events
+     where expires_at < now()
+        or (final_end is not null and final_end < now() - interval '1 day')
+    returning 1)
+  select count(*) into n from d;
+  return n;
+end;
+$$;
+revoke execute on function public.cleanup_events() from public, anon, authenticated;
+
+-- Run the cleanup every hour (needs pg_cron; harmless if unavailable, the worker also cleans up).
+do $$
+begin
+  create extension if not exists pg_cron with schema pg_catalog;
+  perform cron.schedule('overlap-expire-events', '17 * * * *', 'select public.cleanup_events()');
+exception when others then
+  raise notice 'pg_cron not enabled, skipping scheduled cleanup: %', sqlerrm;
+end
+$$;

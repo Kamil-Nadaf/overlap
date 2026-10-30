@@ -39,7 +39,7 @@ create table public.events (
   final_end        timestamptz,
   reminder_offsets_min int[] not null default '{1440,60}',
   created_at       timestamptz not null default now(),
-  expires_at       timestamptz not null default now() + interval '180 days',
+  expires_at       timestamptz not null default now() + interval '60 days',
   check (day_end_min > day_start_min),
   check ((final_start is null) = (final_end is null)),
   check (final_end is null or final_end > final_start)
@@ -231,7 +231,7 @@ begin
     from jsonb_array_elements(p_slots) x
   on conflict do nothing;
 
-  update public.events set expires_at = now() + interval '180 days'
+  update public.events set expires_at = now() + interval '60 days'
    where id = p_event_id;
 
   return jsonb_build_object('participant_id', v_p.id);

@@ -4,7 +4,7 @@
 import pg from 'pg';
 import nodemailer from 'nodemailer';
 import { humanOffset, plan } from './due.mjs';
-import { buildIcs } from './ics.mjs';
+import { buildIcs, calendarLinks } from './ics.mjs';
 
 const env = process.env;
 const POLL = Math.max(15, Number(env.POLL_SECONDS || 60)) * 1000;
@@ -71,7 +71,12 @@ async function tick() {
       for (const o of markSent) await mark(o);
     }
   }
-  await pool.query(`delete from public.events where expires_at < now()`);
+  // Remove finished events (1 day after the meeting ends) and abandoned ones, so the database stays small.
+  const gone = await pool.query(
+    `delete from public.events
+      where expires_at < now() or (final_end is not null and final_end < now() - interval '1 day')`,
+  );
+  if (gone.rowCount) log('cleaned up events', { count: gone.rowCount });
 }
 
 async function deliver(ev, to, subject, text, html) {
@@ -109,15 +114,17 @@ async function sendConfirmation(ev, to) {
     ev.meeting_url ? `Join: ${ev.meeting_url}` : '',
     `Event page (shows the time in your own zone): ${link}`,
     '',
-    'A calendar file is attached. You will get a reminder before it starts.',
+    ...calText(ev),
+    'You will get a reminder before it starts.',
   ].filter((l, i, a) => l !== '' || a[i - 1] !== '').join('\n');
   const html = `<div style="font-family:Georgia,serif;max-width:520px;color:#2b2118">
     <h2 style="margin:0 0 8px">${esc(ev.title)}</h2>
     <p style="margin:0 0 12px">The meeting is scheduled${esc(by)}.</p>
     <p style="margin:0 0 12px"><b>${esc(when)}</b> <small>(${esc(ev.timezone)})</small><br><small>${esc(utc)} UTC</small></p>
     ${ev.meeting_url ? `<p><a href="${esc(ev.meeting_url)}" style="display:inline-block;padding:10px 18px;background:#35617a;color:#fbf3df;text-decoration:none;border-radius:8px">Join the meeting</a></p>` : ''}
+    ${calButtons(ev)}
     <p><a href="${esc(link)}">Open the event</a> to see the time in your own zone.</p>
-    <p style="color:#6b5a44;font-size:12px">Calendar file attached. A reminder follows before it starts.</p></div>`;
+    <p style="color:#6b5a44;font-size:12px">A reminder follows before it starts.</p></div>`;
   const ok = await deliver(ev, to, subject, text, html);
   if (ok) log('sent confirmation', { event: ev.id }); // never log addresses
   return ok;
@@ -135,6 +142,7 @@ async function sendMail(ev, to, offsetMin) {
     `      ${utc} (UTC)`,
     ev.meeting_url ? `Join: ${ev.meeting_url}` : '',
     `Details and your local time: ${link}`,
+    ...calText(ev),
     '',
     'You got this because you asked for a reminder on Overlap.',
   ].filter((l, i, a) => l !== '' || a[i - 1] !== '').join('\n');
@@ -143,12 +151,25 @@ async function sendMail(ev, to, offsetMin) {
     <p style="margin:0 0 12px">Starts in <b>${humanOffset(offsetMin)}</b>.</p>
     <p style="margin:0 0 12px">${esc(when)} <small>(${esc(ev.timezone)})</small><br><small>${esc(utc)} UTC</small></p>
     ${ev.meeting_url ? `<p><a href="${esc(ev.meeting_url)}" style="display:inline-block;padding:10px 18px;background:#35617a;color:#fbf3df;text-decoration:none;border-radius:8px">Join the meeting</a></p>` : ''}
+    ${calButtons(ev)}
     <p><a href="${esc(link)}">Open the event</a> to see the time in your own zone.</p>
     <p style="color:#6b5a44;font-size:12px">You got this because you asked for a reminder on Overlap.</p></div>`;
   const ok = await deliver(ev, to, subject, text, html);
   if (ok) log('sent reminder', { event: ev.id, offsetMin });
   return ok;
 }
+
+const calOf = (ev) => calendarLinks({ id: ev.id, title: ev.title, start: ev.final_start, end: ev.final_end, url: ev.meeting_url, description: ev.description });
+const calText = (ev) => {
+  const c = calOf(ev);
+  return ['', 'Add to your calendar:', `  Google Calendar: ${c.google}`, `  Outlook: ${c.outlook}`, '  Apple, QQ/163 mail or any other calendar: open the attached meeting.ics'];
+};
+const calButtons = (ev) => {
+  const c = calOf(ev);
+  const b = (href, label) => `<a href="${esc(href)}" style="display:inline-block;margin:0 6px 6px 0;padding:7px 12px;border:1px solid #35617a;color:#35617a;text-decoration:none;border-radius:8px;font-size:13px">${label}</a>`;
+  return `<p style="margin:12px 0 4px"><small>Add to your calendar</small><br>${b(c.google, 'Google Calendar')}${b(c.outlook, 'Outlook')}</p>
+    <p style="margin:0 0 12px;color:#6b5a44;font-size:12px">Apple, QQ/163 mail or any other calendar: open the attached meeting.ics</p>`;
+};
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
