@@ -102,6 +102,7 @@ export const demoApi: Api = {
     if (meetingUrl) e.meeting_url = meetingUrl;
     put(d);
   },
+  async sendFeedback() {},
   async organizerRecipients() {
     return [];
   },

@@ -1,6 +1,7 @@
 import { useRef, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useTheme } from '../themes/ThemeContext';
+import { FeedbackButton } from './Feedback';
 import { Eye, EyeOff, Github, Logo, Moon, Plus, Sun } from './icons';
 
 export function Layout({ children }: { children: ReactNode }) {
@@ -31,17 +32,19 @@ export function Layout({ children }: { children: ReactNode }) {
             <span className="font-display text-2xl font-bold leading-none">Overlap</span>
           </Link>
           <nav aria-label="Main" className="pill flex items-center gap-0 px-1 py-0.5 text-base font-medium sm:gap-1 sm:px-2 sm:py-1 sm:text-lg">
-            <Link to="/" className="rounded-full px-2 py-1.5 text-ink no-underline hover:bg-accent/10 sm:px-3">
+            <Link to="/" className="hidden rounded-full px-2 py-1.5 text-ink no-underline hover:bg-accent/10 sm:inline sm:px-3">
               Home
             </Link>
-            <Link to="/new" className="rounded-full px-2 py-1.5 text-ink no-underline hover:bg-accent/10 sm:px-3">
+            <Link to="/new" className="whitespace-nowrap rounded-full px-2 py-1.5 text-ink no-underline hover:bg-accent/10 sm:px-3">
               New event
             </Link>
+            <FeedbackButton />
             <a
               href="https://github.com/Kamil-Nadaf/overlap"
+              aria-label="GitHub"
               className="flex items-center gap-2 rounded-full px-2 py-1.5 text-ink no-underline hover:bg-accent/10 sm:px-3"
             >
-              <Github /> GitHub
+              <Github /> <span className="hidden sm:inline">GitHub</span>
             </a>
           </nav>
         </header>

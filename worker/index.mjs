@@ -79,6 +79,32 @@ async function tick() {
   if (gone.rowCount) log('cleaned up events', { count: gone.rowCount });
 }
 
+// Optional: forward new site feedback to FEEDBACK_TO (the site owner). Never logs the message itself.
+async function feedbackTick() {
+  if (!env.FEEDBACK_TO) return;
+  const { rows } = await pool.query(
+    `select id, message, contact, page, created_at from public.feedback where not notified order by id limit 20`,
+  );
+  for (const f of rows) {
+    if (!DRY) {
+      try {
+        await mailer.sendMail({
+          from: MAIL_FROM,
+          to: env.FEEDBACK_TO,
+          subject: 'Overlap feedback',
+          text: [f.message, '', `From: ${f.contact || '(anonymous)'}`, `Page: ${f.page || '-'}`, `Sent: ${new Date(f.created_at).toISOString()}`].join('\n'),
+          ...(f.contact && /^\S+@\S+\.\S+$/.test(f.contact) ? { replyTo: f.contact } : {}),
+        });
+      } catch (e) {
+        log('feedback mail failed:', e.message);
+        return;
+      }
+    }
+    await pool.query(`update public.feedback set notified = true where id = $1`, [f.id]);
+    log('forwarded feedback', { id: f.id });
+  }
+}
+
 async function deliver(ev, to, subject, text, html) {
   if (DRY) {
     log('DRY_RUN would send', { subject });
@@ -181,6 +207,11 @@ async function main() {
       await tick();
     } catch (e) {
       log('tick failed:', e.message);
+    }
+    try {
+      await feedbackTick();
+    } catch (e) {
+      log('feedback tick failed:', e.message);
     }
     await new Promise((r) => setTimeout(r, POLL));
   }

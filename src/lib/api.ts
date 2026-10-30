@@ -19,6 +19,7 @@ export interface Api {
   organizerRecipients(id: string, token: string): Promise<string[]>;
   claimConfirmation(id: string, token: string, emails: string[]): Promise<void>;
   releaseConfirmation(id: string, token: string, emails: string[]): Promise<void>;
+  sendFeedback(message: string, contact: string, page: string): Promise<void>;
   /** demo mode only */
   seedSample?(eventId: string): Promise<void>;
 }
@@ -89,6 +90,9 @@ const remoteApi: Api = {
   deleteEvent: async (id, token) => {
     await rpc('delete_event', { p_id: id, p_admin_token: token });
   },
+  sendFeedback: async (message, contact, page) => {
+    await rpc('send_feedback', { p_message: message, p_contact: contact || null, p_page: page });
+  },
   organizerRecipients: async (id, token) => (await rpc<string[] | null>('organizer_recipients', { p_id: id, p_admin_token: token })) ?? [],
   claimConfirmation: async (id, token, emails) => {
     await rpc('claim_confirmation', { p_id: id, p_admin_token: token, p_emails: emails });
@@ -107,6 +111,7 @@ export function friendlyError(e: unknown): string {
   if (m.includes('event_not_found')) return 'This event was not found. It may have expired.';
   if (m.includes('forbidden')) return 'Only the organizer can do that.';
   if (m.includes('invalid_slots')) return 'Too many time slots selected.';
+  if (m.includes('too_many')) return 'Lots of feedback just came in. Please try again in a little while.';
   if (m.includes('network')) return 'Cannot reach the server. Check your connection and try again.';
   return m && m !== 'server' ? `Something went wrong (${m.slice(0, 140)}). Please try again.` : 'Something went wrong. Please try again.';
 }

@@ -75,3 +75,8 @@ export const Copy = () => (
     <path d="M5 15V5a2 2 0 0 1 2-2h8" />
   </I>
 );
+export const Chat = () => (
+  <I size={18}>
+    <path d="M4 5h16v11H9l-5 4V5Z" />
+  </I>
+);
