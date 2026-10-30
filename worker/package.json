@@ -1,0 +1,8 @@
+{
+  "name": "overlap-worker",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": { "start": "node index.mjs", "test": "node --test" },
+  "dependencies": { "nodemailer": "^6.9.16", "pg": "^8.13.1" }
+}
