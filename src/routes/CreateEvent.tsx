@@ -35,8 +35,8 @@ export function CreateEvent() {
 
   const [title, setTitle] = useState(q.get('title') ?? '');
   const [dates, setDates] = useState<string[]>(initialDates);
-  const [start, setStart] = useState(540);
-  const [end, setEnd] = useState(1080);
+  const [start, setStart] = useState(0);
+  const [end, setEnd] = useState(1440);
   const [slot, setSlot] = useState(30);
   const [zone, setZone] = useState(browserZone());
   const [url, setUrl] = useState('');
@@ -99,7 +99,7 @@ export function CreateEvent() {
           </div>
           <details className="rounded-xl border border-edge-soft bg-field/60 px-3 py-2">
             <summary className="cursor-pointer text-base font-bold text-ink-soft">
-              {fmtMinutes(start)} to {end === 1440 ? '24:00' : fmtMinutes(end)} · {slot} min slots · {zone} <span className="font-normal underline">change</span>
+              {start === 0 && end === 1440 ? "Whole day" : `${fmtMinutes(start)} to ${end === 1440 ? "24:00" : fmtMinutes(end)}`} · {slot} min slots · {zone} <span className="font-normal underline">change</span>
             </summary>
             <div className="mt-3 flex flex-col gap-3">
           <div className="flex flex-wrap gap-3">
