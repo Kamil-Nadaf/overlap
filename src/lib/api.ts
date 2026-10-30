@@ -96,5 +96,5 @@ export function friendlyError(e: unknown): string {
   if (m.includes('forbidden')) return 'Only the organizer can do that.';
   if (m.includes('invalid_slots')) return 'Too many time slots selected.';
   if (m.includes('network')) return 'Cannot reach the server. Check your connection and try again.';
-  return 'Something went wrong. Please try again.';
+  return m && m !== 'server' ? `Something went wrong (${m.slice(0, 140)}). Please try again.` : 'Something went wrong. Please try again.';
 }

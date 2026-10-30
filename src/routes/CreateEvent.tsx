@@ -97,6 +97,11 @@ export function CreateEvent() {
             </div>
             <DatePicker value={dates} onChange={setDates} />
           </div>
+          <details className="rounded-xl border border-edge-soft bg-field/60 px-3 py-2">
+            <summary className="cursor-pointer text-base font-bold text-ink-soft">
+              {fmtMinutes(start)} to {end === 1440 ? '24:00' : fmtMinutes(end)} · {slot} min slots · {zone} <span className="font-normal underline">change</span>
+            </summary>
+            <div className="mt-3 flex flex-col gap-3">
           <div className="flex flex-wrap gap-3">
             <label className="label min-w-28 flex-1">
               Earliest
@@ -138,6 +143,8 @@ export function CreateEvent() {
             </select>
             <span className="text-sm font-normal text-muted">Everyone still sees the grid in their own time zone.</span>
           </label>
+            </div>
+          </details>
         </div>
 
         <div className="flex min-w-0 flex-[1_1_360px] flex-col gap-4">
