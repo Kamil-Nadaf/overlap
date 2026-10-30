@@ -9,7 +9,8 @@ import { getGmailToken, gmailEnabled, preloadGoogle, sendConfirmations } from '.
 import { bestBlocks, levelsFor, namesFor, tally, type Block } from '../lib/aggregate';
 import { downloadIcs, googleCalendarUrl, outlookUrl, type CalEvent } from '../lib/ics';
 import { allZones, browserZone, buildGrid, describeSlot, generateSlots, sliceGrid, weeksOf } from '../lib/slots';
-import { adminKey, identityKey, load, RECENT_KEY, remove, save, type Identity } from '../lib/storage';
+import { adminKey, identityKey, load, RECENT_KEY, save, type Identity } from '../lib/storage';
+import { deleteMyEvent } from '../lib/deleteEvent';
 import { useEvent } from '../lib/useEvent';
 import type { Level } from '../types';
 import { eventUrl } from './Created';
@@ -565,7 +566,7 @@ export function EventPage() {
             <div className="border-t border-edge-soft pt-3">
               {confirmDelete ? (
                 <div className="flex items-center gap-2">
-                  <button type="button" className="btn !bg-[#a8341f] !border-[#7e2515] !shadow-[0_3px_0_#7e2515]" onClick={() => void api.deleteEvent(id, token).then(() => { remove(adminKey(id)); location.hash = '#/'; })}>
+                  <button type="button" className="btn !bg-[#a8341f] !border-[#7e2515] !shadow-[0_3px_0_#7e2515]" onClick={() => void deleteMyEvent(id, token).then(() => { location.hash = '#/'; }, (e) => { setConfirmDelete(false); setMsg({ kind: 'err', text: friendlyError(e) }); })}>
                     Yes, delete for everyone
                   </button>
                   <button type="button" className="cursor-pointer border-0 bg-transparent text-base font-bold underline" onClick={() => setConfirmDelete(false)}>

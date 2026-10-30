@@ -1,8 +1,10 @@
-import { Link, useParams } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { CopyField } from '../components/CopyField';
 import { Check } from '../components/icons';
 import { adminKey, load } from '../lib/storage';
-import { api } from '../lib/api';
+import { api, friendlyError } from '../lib/api';
+import { deleteMyEvent } from '../lib/deleteEvent';
 import { useEvent } from '../lib/useEvent';
 
 export const eventUrl = (id: string) => `${location.origin}${location.pathname}#/e/${id}`;
@@ -12,6 +14,17 @@ export function Created() {
   const { bundle } = useEvent(id);
   const token = load<string>(adminKey(id), '');
   const ev = bundle?.event;
+  const nav = useNavigate();
+  const [asking, setAsking] = useState(false);
+  const [err, setErr] = useState('');
+  const remove = () =>
+    void deleteMyEvent(id, token).then(
+      () => nav('/'),
+      (e) => {
+        setAsking(false);
+        setErr(friendlyError(e));
+      },
+    );
 
   return (
     <div className="card mx-4 mb-4 max-w-2xl sm:mx-8 lg:ml-auto px-5 py-7 sm:px-9">
@@ -19,7 +32,7 @@ export function Created() {
         <span className="flex size-12 shrink-0 items-center justify-center rounded-full border-[2.5px] border-[#4f7a45] text-[#4f7a45]">
           <Check size={26} />
         </span>
-        <h1 className="h-display text-4xl sm:text-5xl">Your grid is ready</h1>
+        <h1 className="h-display text-3xl sm:text-4xl">Your grid is ready</h1>
       </div>
       {ev && (
         <p className="mb-5 text-lg text-ink-soft">
@@ -52,7 +65,26 @@ export function Created() {
           </p>
         )}
       </div>
-      <div className="mt-6 flex justify-end">
+      {err && <p className="m-0 mt-4 rounded-lg bg-[#f3d4cc] px-3 py-2 text-base text-[#7e2515]">{err}</p>}
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+        {token ? (
+          asking ? (
+            <span className="flex items-center gap-2">
+              <button type="button" className="btn !bg-[#a8341f] !border-[#7e2515] !shadow-[0_3px_0_#7e2515]" onClick={remove}>
+                Yes, delete it
+              </button>
+              <button type="button" className="cursor-pointer border-0 bg-transparent text-base font-bold underline" onClick={() => setAsking(false)}>
+                Keep it
+              </button>
+            </span>
+          ) : (
+            <button type="button" className="cursor-pointer border-0 bg-transparent p-0 text-base font-bold text-[#a8341f] underline" onClick={() => setAsking(true)}>
+              Created by mistake? Delete it
+            </button>
+          )
+        ) : (
+          <span />
+        )}
         <Link to={`/e/${id}`} className="btn">
           Open the grid <span aria-hidden="true">→</span>
         </Link>
