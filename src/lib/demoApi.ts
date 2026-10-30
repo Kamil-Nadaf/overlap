@@ -102,6 +102,11 @@ export const demoApi: Api = {
     if (meetingUrl) e.meeting_url = meetingUrl;
     put(d);
   },
+  async organizerRecipients() {
+    return [];
+  },
+  async claimConfirmation() {},
+  async releaseConfirmation() {},
   async deleteEvent(id, token) {
     const d = db();
     if (d[id]?.admin !== token) throw new Error('forbidden');

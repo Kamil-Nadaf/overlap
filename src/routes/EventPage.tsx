@@ -5,6 +5,7 @@ import { SlotGrid, type Brush } from '../components/SlotGrid';
 import { CopyField } from '../components/CopyField';
 import { Check, Globe, Video } from '../components/icons';
 import { api, friendlyError } from '../lib/api';
+import { getGmailToken, gmailEnabled, preloadGoogle, sendConfirmations } from '../lib/gmail';
 import { bestBlocks, levelsFor, namesFor, tally, type Block } from '../lib/aggregate';
 import { downloadIcs, googleCalendarUrl, type CalEvent } from '../lib/ics';
 import { allZones, browserZone, buildGrid, describeSlot, generateSlots, sliceGrid, weeksOf } from '../lib/slots';
@@ -40,6 +41,11 @@ export function EventPage() {
   const [touchPaint, setTouchPaint] = useState(false);
   const coarse = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches;
   const [pick, setPick] = useState<{ start: string; end: string } | null>(null);
+  const [useGmail, setUseGmail] = useState(() => load<boolean>('overlap:gmail', true));
+  const canGmail = gmailEnabled && api.mode === 'remote';
+  useEffect(() => {
+    if (canGmail && isAdmin) preloadGoogle();
+  }, [canGmail, isAdmin]);
 
   const ev = bundle?.event;
   const people = useMemo(() => bundle?.participants ?? [], [bundle]);
@@ -147,15 +153,53 @@ export function EventPage() {
   };
 
   const setFinal = async (start: string | null, end: string | null) => {
+    const evt = bundle?.event;
+    const viaGmail = !!(start && end && evt && canGmail && useGmail);
     try {
+      // Ask Google first, straight from the click, or the browser blocks the popup.
+      let gToken = '';
+      if (viaGmail) {
+        try {
+          gToken = await getGmailToken();
+        } catch {
+          setMsg({ kind: 'err', text: 'Google sign-in was closed or blocked. Allow the popup and try again, or untick "Send from my Gmail" to let Overlap send it.' });
+          return;
+        }
+      }
       await api.finalizeEvent(id, token, start, end, meetUrl);
       await refresh();
-      if (start && end) {
+      if (!start || !end) return;
+      if (!viaGmail || !evt) {
         setMsg({
           kind: 'ok',
           text: api.mode === 'remote' ? 'Meeting set. Everyone who left an email is being notified (within a minute).' : 'Meeting set. Demo mode does not send email.',
         });
+        return;
       }
+      const emails = await api.organizerRecipients(id, token);
+      if (emails.length === 0) {
+        setMsg({ kind: 'ok', text: 'Meeting set. Nobody has left an email address yet, so nothing was sent.' });
+        return;
+      }
+      await api.claimConfirmation(id, token, emails); // tells the reminder worker not to send the confirmation too
+      const mins = Math.round((Date.parse(end) - Date.parse(start)) / 60000);
+      const url = meetUrl.trim() || evt.meeting_url;
+      const res = await sendConfirmations(gToken, emails, {
+        title: evt.title,
+        organizerName: evt.organizer_name ?? undefined,
+        whenText: `${describeSlot(start, evt.timezone, mins)} (${evt.timezone})`,
+        utcText: describeSlot(start, 'UTC', mins),
+        meetingUrl: url,
+        eventLink: eventUrl(id),
+        cal: { uid: evt.id, title: evt.title, startIso: start, endIso: end, url, description: evt.description ?? undefined, alarmMinutes: [60] },
+      });
+      if (res.failed.length) await api.releaseConfirmation(id, token, res.failed); // worker retries these from the shared sender
+      const ok = emails.length - res.failed.length;
+      setMsg(
+        res.failed.length === 0
+          ? { kind: 'ok', text: `Meeting set. Sent from your Gmail to ${ok} ${ok === 1 ? 'person' : 'people'}. Reminders follow automatically.` }
+          : { kind: 'err', text: `Meeting set. Your Gmail sent ${ok} of ${emails.length}; Overlap will email the rest from its own address (${(res.reason ?? 'unknown').slice(0, 120)}).` },
+      );
     } catch (e) {
       setMsg({ kind: 'err', text: friendlyError(e) });
     }
@@ -493,6 +537,23 @@ export function EventPage() {
               Meeting link
               <input className="input" type="url" value={meetUrl} onChange={(e) => setMeetUrl(e.target.value)} placeholder="https://meet.google.com/…" />
             </label>
+            {canGmail && (
+              <label className="flex cursor-pointer items-start gap-2 text-base">
+                <input
+                  type="checkbox"
+                  className="mt-1 h-4 w-4"
+                  checked={useGmail}
+                  onChange={(e) => {
+                    setUseGmail(e.target.checked);
+                    save('overlap:gmail', e.target.checked);
+                  }}
+                />
+                <span>
+                  <b>Send from my Gmail</b>
+                  <span className="block text-sm text-muted">Google asks once to let Overlap send mail as you. It cannot read your inbox. Reminders later come from Overlap's address with replies going to you.</span>
+                </span>
+              </label>
+            )}
             {msgBox}
             <button type="button" className="btn self-start" disabled={!sel} onClick={() => sel && void setFinal(sel.start, sel.end)}>
               {ev.final_start ? 'Update and email everyone' : 'Confirm and email everyone'}

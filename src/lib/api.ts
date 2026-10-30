@@ -15,12 +15,17 @@ export interface Api {
   verifyAdmin(id: string, token: string): Promise<boolean>;
   finalizeEvent(id: string, token: string, start: string | null, end: string | null, meetingUrl?: string): Promise<void>;
   deleteEvent(id: string, token: string): Promise<void>;
+  /** organizer only: addresses to notify, and bookkeeping so the worker does not double-send */
+  organizerRecipients(id: string, token: string): Promise<string[]>;
+  claimConfirmation(id: string, token: string, emails: string[]): Promise<void>;
+  releaseConfirmation(id: string, token: string, emails: string[]): Promise<void>;
   /** demo mode only */
   seedSample?(eventId: string): Promise<void>;
 }
 
 const env = import.meta.env as Record<string, string | undefined>;
-const supaUrl = env.VITE_SUPABASE_URL?.replace(/\/$/, '');
+// Accept the bare project URL or one that already ends in /rest/v1 (a common copy-paste).
+const supaUrl = env.VITE_SUPABASE_URL?.trim().replace(/\/+$/, '').replace(/\/rest\/v1$/, '');
 const apiUrl = (env.VITE_API_URL || (supaUrl ? `${supaUrl}/rest/v1` : '')).replace(/\/$/, '');
 const apiKey = env.VITE_API_KEY || env.VITE_SUPABASE_ANON_KEY || '';
 
@@ -83,6 +88,13 @@ const remoteApi: Api = {
   },
   deleteEvent: async (id, token) => {
     await rpc('delete_event', { p_id: id, p_admin_token: token });
+  },
+  organizerRecipients: async (id, token) => (await rpc<string[] | null>('organizer_recipients', { p_id: id, p_admin_token: token })) ?? [],
+  claimConfirmation: async (id, token, emails) => {
+    await rpc('claim_confirmation', { p_id: id, p_admin_token: token, p_emails: emails });
+  },
+  releaseConfirmation: async (id, token, emails) => {
+    await rpc('release_confirmation', { p_id: id, p_admin_token: token, p_emails: emails });
   },
 };
 
